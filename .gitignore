@@ -6,3 +6,5 @@ target/
 .vscode/
 *.iml
 *.log
+.smarttomcat/
+gemma4-server.tar

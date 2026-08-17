@@ -55,7 +55,7 @@ h2 {
 
 .status-list {
     display: grid;
-    grid-template-columns: 60px 1fr;
+    grid-template-columns: 82px 1fr;
     gap: 8px 12px;
     margin: 0;
     padding: 14px;
@@ -78,7 +78,8 @@ h2 {
 }
 
 .chat-form,
-.result-shell {
+.result-shell,
+.analysis-panel {
     border: 1px solid #d7dee8;
     border-radius: 8px;
     background: #ffffff;
@@ -153,6 +154,22 @@ button:disabled {
     overflow: hidden;
 }
 
+.analysis-grid {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.9fr) minmax(360px, 1.4fr);
+    gap: 18px;
+    align-items: start;
+}
+
+.analysis-panel {
+    min-width: 0;
+    overflow: hidden;
+}
+
+.analysis-panel:nth-child(3) {
+    grid-column: 1 / -1;
+}
+
 .result-header {
     display: flex;
     align-items: center;
@@ -161,6 +178,86 @@ button:disabled {
     padding: 14px 18px;
     border-bottom: 1px solid #e3e8ef;
     background: #f8fafc;
+}
+
+.feature-summary {
+    display: grid;
+    grid-template-columns: 116px minmax(0, 1fr);
+    gap: 10px 14px;
+    margin: 0;
+    padding: 18px;
+}
+
+.feature-summary dt {
+    color: #52606d;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.feature-summary dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+    color: #172026;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.normalized-items {
+    max-height: 360px;
+    overflow: auto;
+}
+
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 13px;
+}
+
+.items-table th,
+.items-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e3e8ef;
+    text-align: left;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+}
+
+.items-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    color: #334e68;
+    background: #f8fafc;
+    font-weight: 700;
+}
+
+.items-table th:nth-child(1),
+.items-table td:nth-child(1) {
+    width: 30%;
+}
+
+.items-table th:nth-child(7),
+.items-table td:nth-child(7) {
+    width: 88px;
+}
+
+.unmapped-items {
+    max-height: 150px;
+    margin: 0;
+    padding: 14px 18px 14px 34px;
+    overflow: auto;
+    color: #334e68;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.empty-text {
+    margin: 0;
+    padding: 18px;
+    color: #52606d;
+    font-size: 14px;
 }
 
 .result-output {
@@ -183,6 +280,18 @@ button:disabled {
     .topbar {
         grid-template-columns: 1fr;
         align-items: start;
+    }
+
+    .analysis-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .analysis-panel:nth-child(3) {
+        grid-column: auto;
+    }
+
+    .feature-summary {
+        grid-template-columns: 1fr;
     }
 
     h1 {
