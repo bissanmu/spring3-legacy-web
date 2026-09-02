@@ -12,19 +12,7 @@
 
     <beans:bean id="llmStreamClient" class="com.example.legacy.LlmStreamClient"/>
 
-    <beans:bean id="repairMappingCache" class="com.example.legacy.repair.RepairMappingCache" init-method="reload"/>
-
-    <beans:bean id="repairAnalysisService" class="com.example.legacy.repair.RepairAnalysisService">
-        <beans:constructor-arg ref="repairMappingCache"/>
-    </beans:bean>
-
     <beans:bean id="homeController" class="com.example.legacy.HomeController">
         <beans:constructor-arg ref="llmStreamClient"/>
-        <beans:constructor-arg ref="repairAnalysisService"/>
-    </beans:bean>
-
-    <beans:bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
-        <beans:property name="prefix" value="/WEB-INF/views/"/>
-        <beans:property name="suffix" value=".jsp"/>
     </beans:bean>
 </beans:beans>

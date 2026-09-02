@@ -9,8 +9,6 @@ Spring `3.1.1.RELEASE` 기반 XML MVC 레거시 웹 프로젝트입니다.
 - Spring `DispatcherServlet`
 - XML 기반 MVC 설정
 - XML bean 기반 컨트롤러 등록
-- JSP ViewResolver
-- JSTL
 - SLF4J + Logback
 
 ## 실행
@@ -39,12 +37,13 @@ mvn tomcat7:run
 - `MODEL_NAME`: 기본 `cyankiwi/gemma-4-E4B-it-AWQ-INT4`
 - `LLM_API_KEY`: 필요한 경우 Bearer 토큰
 
-웹 화면에서 프롬프트를 입력하면 Spring MVC가 Docker의 LLM API를 호출하고, 응답 토큰을 브라우저에 스트리밍합니다.
+`sample.html`의 사고 이력 분석 버튼을 누르면 Spring MVC가 LLM API를 호출하고, 응답 토큰을 브라우저에 스트리밍합니다.
 
 ## 주요 파일
 
 - `pom.xml`: Spring `3.1.1.RELEASE` 및 웹 의존성
 - `src/main/webapp/WEB-INF/web.xml`: 레거시 웹 애플리케이션 진입점
 - `src/main/webapp/WEB-INF/spring/appServlet/servlet-context.xml`: Spring MVC 설정
-- `src/main/webapp/WEB-INF/views/home.jsp`: JSP 화면
-- `src/main/java/com/example/legacy/HomeController.java`: 기본 컨트롤러
+- `src/main/webapp/WEB-INF/views/sample.html`: 사고 이력 샘플 화면
+- `src/main/java/com/example/legacy/HomeController.java`: 화면 이동 및 사고 이력 분석 API
+- `src/main/java/com/example/legacy/LlmStreamClient.java`: OpenAI 호환 LLM 스트리밍 클라이언트

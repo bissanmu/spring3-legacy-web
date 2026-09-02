@@ -1,20 +1,12 @@
 package com.example.legacy;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
 import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-
-import com.example.legacy.repair.RepairAnalysisResult;
-import com.example.legacy.repair.RepairAnalysisService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Controller
 public class HomeController {
@@ -32,81 +24,18 @@ public class HomeController {
             + "가장 가능성 높은 사고 유형과 그렇게 판단한 논리적 근거를 설명하십시오.";
 
     private final LlmStreamClient llmStreamClient;
-    private final RepairAnalysisService repairAnalysisService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public HomeController() {
-        this(new LlmStreamClient(), RepairAnalysisService.createDefault());
+        this(new LlmStreamClient());
     }
 
-    public HomeController(LlmStreamClient llmStreamClient, RepairAnalysisService repairAnalysisService) {
+    public HomeController(LlmStreamClient llmStreamClient) {
         this.llmStreamClient = llmStreamClient;
-        this.repairAnalysisService = repairAnalysisService;
     }
 
     @RequestMapping(value = "/", method = RequestMethod.GET)
-    public String home(Model model) {
-        String serverTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
-        model.addAttribute("serverTime", serverTime);
-        model.addAttribute("modelName", llmStreamClient.getModelName());
-        model.addAttribute("apiUrl", llmStreamClient.getApiUrl());
-        model.addAttribute("mappingCount", repairAnalysisService.getDictionarySize());
-        return "home";
-    }
-
-    @RequestMapping(value = "/api/analyze", method = RequestMethod.POST)
-    public void analyze(@RequestParam(value = "prompt", required = false) String prompt,
-                        HttpServletResponse response) throws Exception {
-        response.setCharacterEncoding("UTF-8");
-        response.setContentType("application/json;charset=UTF-8");
-        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-
-        if (prompt == null || prompt.trim().length() == 0) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            objectMapper.writeValue(response.getWriter(), error("수리내역을 입력해주세요."));
-            return;
-        }
-
-        RepairAnalysisResult analysisResult = repairAnalysisService.analyze(prompt);
-        objectMapper.writeValue(response.getWriter(), analysisResult);
-    }
-
-    @RequestMapping(value = "/api/chat", method = RequestMethod.POST)
-    public void chat(@RequestParam(value = "prompt", required = false) String prompt,
-                     HttpServletResponse response) throws Exception {
-        response.setCharacterEncoding("UTF-8");
-        response.setContentType("text/plain;charset=UTF-8");
-        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-        response.setHeader("Pragma", "no-cache");
-        response.setHeader("X-Accel-Buffering", "no");
-
-        final java.io.PrintWriter writer = response.getWriter();
-
-        if (prompt == null || prompt.trim().length() == 0) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            writer.write("프롬프트를 입력해주세요.");
-            writer.flush();
-            return;
-        }
-
-        RepairAnalysisResult analysisResult = repairAnalysisService.analyze(prompt);
-        String llmPrompt = repairAnalysisService.buildLlmPrompt(prompt, analysisResult);
-
-        try {
-            llmStreamClient.streamChat(llmPrompt, new LlmStreamClient.ChunkConsumer() {
-                public void onChunk(String chunk) throws java.io.IOException {
-                    writer.write(chunk);
-                    writer.flush();
-                    response.flushBuffer();
-                }
-            });
-        } catch (Exception ex) {
-            if (!response.isCommitted()) {
-                response.setStatus(HttpServletResponse.SC_BAD_GATEWAY);
-            }
-            writer.write("\n\n[LLM 호출 오류] " + ex.getMessage());
-            writer.flush();
-        }
+    public String home() {
+        return "redirect:/sample.html";
     }
 
     @ResponseBody
@@ -153,11 +82,5 @@ public class HomeController {
 
     String buildAccidentBriefingPrompt(String repairHistory) {
         return ACCIDENT_BRIEFING_PROMPT + "\n\n수리 내역 목록:\n" + repairHistory.trim();
-    }
-
-    private java.util.Map<String, String> error(String message) {
-        java.util.Map<String, String> error = new java.util.LinkedHashMap<String, String>();
-        error.put("error", message);
-        return error;
     }
 }

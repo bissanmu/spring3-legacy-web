@@ -98,13 +98,6 @@
             <resource>
                 <directory>src/main/resources</directory>
             </resource>
-            <resource>
-                <directory>data</directory>
-                <targetPath>data</targetPath>
-                <includes>
-                    <include>repair_mapping_dictionary.json</include>
-                </includes>
-            </resource>
         </resources>
         <plugins>
             <plugin>
