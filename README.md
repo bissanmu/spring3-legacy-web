@@ -1,49 +1,42 @@
-# Spring 3 Legacy Web
+# AI 사고이력 브리핑 · Spring 3
 
-Spring `3.1.1.RELEASE` 기반 XML MVC 레거시 웹 프로젝트입니다.
-
-## 구성
-
-- Maven `war` 패키징
-- Servlet `2.5` `web.xml`
-- Spring `DispatcherServlet`
-- XML 기반 MVC 설정
-- XML bean 기반 컨트롤러 등록
-- SLF4J + Logback
+Spring 3.1.1 XML MVC 프로젝트에 보험사고 수리내역 입력과 Gemma 4 결과 화면을 추가했습니다. `http://localhost:8080/` 또는 `/briefing.html`에서 차량명, 사고일자(선택), 수리항목을 입력합니다. 수리항목은 한 줄에 하나씩 넣거나 6건 예시와 같은 TXT 파일을 선택해 불러옵니다. 분석 후 `/briefing-result.html?id=...`에서 6건 미리보기와 같은 3개 판단 카드, 요약, 번호형 근거, 근거 원문, JSON을 볼 수 있습니다. 종전 카히스토리 샘플은 `/sample.html`에 있습니다.
 
 ## 실행
 
-```bash
-mvn clean package
-```
+Java 8 이상과 Maven이 필요합니다. Gemma 4 호환 서버가 `http://localhost:8000/v1/chat/completions`에서 스트리밍 응답을 제공해야 합니다.
 
-생성된 `target/spring3-legacy-web.war` 파일을 Tomcat 7/8/8.5 같은 `javax.servlet` 기반 WAS에 배포하면 됩니다. Tomcat 10 이상은 `jakarta.servlet` 네임스페이스라서 이 레거시 프로젝트와 바로 호환되지 않습니다.
-
-현재 `pom.xml`은 최신 JDK에서도 컴파일하기 쉽도록 Java 8 타깃으로 설정되어 있습니다. 운영 환경을 더 보수적으로 맞춰야 한다면 JDK 8에서 `<java.version>1.7</java.version>`로 낮춰 빌드하세요.
-
-로컬 Maven Tomcat 플러그인으로 실행하려면 다음 명령을 사용할 수 있습니다.
-
-```bash
+```powershell
+mvn test
 mvn tomcat7:run
 ```
 
-브라우저에서 `http://localhost:8080/`로 접속합니다.
+브라우저 주소: `http://localhost:8080/briefing.html`
 
-## LLM 연동
+설정: `LLM_API_URL` (기본 `http://localhost:8000/v1/chat/completions`), `MODEL_NAME` (기본 `/models/gemma-4-E4B-it-AWQ-INT4`), `LLM_API_KEY` (필요한 경우). Java 시스템 속성 `llm.api.url`, `model.name`, `llm.api.key`도 지원합니다.
 
-기본값은 OpenAI 호환 API입니다.
+## 처리 흐름
 
-- `LLM_API_URL`: 기본 `http://localhost:8000/v1/chat/completions`
-- `MODEL_NAME`: 기본 `cyankiwi/gemma-4-E4B-it-AWQ-INT4`
-- `LLM_API_KEY`: 필요한 경우 Bearer 토큰
+1. 입력 원문을 줄 단위로 분리하고 `R001`부터 근거 ID를 부여합니다.
+2. `data/ai_briefing/REPAIR_ITEM_MAP.csv`의 2-b 표준 부품명·작업 유형을 조회합니다. 수리내역 원문은 `source_items`에 그대로 보존합니다. 일치하지 않는 항목은 원문 부품명과 작업 유형을 사용하고 `unmapped_ids`에 표시합니다.
+3. Gemma 4에 표준화 수리항목, 근거 ID, 작업 유형 건수를 보내 초안·검토안·최종안을 생성합니다. 충격 방향·피해 규모·사고 유형은 모델이 판단합니다.
+4. 최종 JSON 필드와 근거 ID 존재 여부를 검사한 뒤 결과를 화면에 표시합니다. 검사는 내용의 사실 여부를 보증하지 않으므로 `manual_review=required`, `publishable=false`로 표시합니다.
 
-`sample.html`의 사고 이력 분석 버튼을 누르면 Spring MVC가 LLM API를 호출하고, 응답 토큰을 브라우저에 스트리밍합니다.
+표준화 조회용 `src/main/resources/briefing/repair-lookup.json`은 `python tools/build_briefing_lookup.py`로 다시 생성할 수 있습니다. 실제 모델 호출은 SSE 스트림으로 받습니다.
+
+## API
+
+- `POST /api/briefings`: JSON `{ "vehicleName": "...", "accidentDate": "2026-09-28", "repairHistory": "부품(교환)\n부품(도장)" }` → 결과 JSON
+- `GET /api/briefings/{id}`: 생성된 결과 JSON
+
+결과는 서버 메모리에 보관되므로 서버를 재시작하면 조회할 수 없습니다. 최대 100건 보관하며 그 다음 요청 때 이전 결과를 비웁니다. 입력은 최대 300줄입니다.
 
 ## 주요 파일
 
-- `pom.xml`: Spring `3.1.1.RELEASE` 및 웹 의존성
-- `src/main/webapp/WEB-INF/web.xml`: 레거시 웹 애플리케이션 진입점
-- `src/main/webapp/WEB-INF/spring/appServlet/servlet-context.xml`: Spring MVC 설정
-- `src/main/webapp/WEB-INF/views/sample.html`: 사고 이력 샘플 화면
-- `src/main/java/com/example/legacy/HomeController.java`: 화면 이동 및 사고 이력 분석 API
-- `src/main/java/com/example/legacy/LlmStreamClient.java`: OpenAI 호환 LLM 스트리밍 클라이언트
+- `src/main/java/com/example/legacy/RepairLookup.java`: 2-b 표준화 데이터 조회
+- `src/main/java/com/example/legacy/BriefingService.java`: 모델 입력, 3단계 호출, 결과 검증
+- `src/main/java/com/example/legacy/BriefingController.java`: JSON API
+- `src/main/java/com/example/legacy/LlmStreamClient.java`: OpenAI 호환 SSE 클라이언트
+- `src/main/webapp/WEB-INF/views/briefing.html`: 차량 입력 화면
+- `src/main/webapp/WEB-INF/views/briefing-result.html`: 결과 화면
+- `src/main/webapp/WEB-INF/views/sample.html`: 종전 카히스토리 샘플

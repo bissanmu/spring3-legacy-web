@@ -9,8 +9,18 @@
     <annotation-driven/>
     <resources mapping="/resources/**" location="/resources/"/>
     <resources mapping="/sample.html" location="/WEB-INF/views/"/>
+    <resources mapping="/briefing.html" location="/WEB-INF/views/"/>
+    <resources mapping="/briefing-result.html" location="/WEB-INF/views/"/>
 
     <beans:bean id="llmStreamClient" class="com.example.legacy.LlmStreamClient"/>
+    <beans:bean id="repairLookup" class="com.example.legacy.RepairLookup"/>
+    <beans:bean id="briefingService" class="com.example.legacy.BriefingService">
+        <beans:constructor-arg ref="repairLookup"/>
+        <beans:constructor-arg ref="llmStreamClient"/>
+    </beans:bean>
+    <beans:bean id="briefingController" class="com.example.legacy.BriefingController">
+        <beans:constructor-arg ref="briefingService"/>
+    </beans:bean>
 
     <beans:bean id="homeController" class="com.example.legacy.HomeController">
         <beans:constructor-arg ref="llmStreamClient"/>

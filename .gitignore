@@ -8,3 +8,4 @@ target/
 *.log
 .smarttomcat/
 gemma4-server.tar
+.m2/

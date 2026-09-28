@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class LlmStreamClient {
 
     private static final String DEFAULT_API_URL = "http://localhost:8000/v1/chat/completions";
-    private static final String DEFAULT_MODEL_NAME = "cyankiwi/gemma-4-E4B-it-AWQ-INT4";
+    private static final String DEFAULT_MODEL_NAME = "/models/gemma-4-E4B-it-AWQ-INT4";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final String apiUrl;
@@ -77,6 +77,60 @@ public class LlmStreamClient {
         }
     }
 
+    /** Gemma server must be read as SSE even when the caller wants a complete JSON result. */
+    public String completeJson(final String system, final String user) throws IOException {
+        HttpURLConnection connection = (HttpURLConnection) new URL(apiUrl).openConnection();
+        connection.setRequestMethod("POST");
+        connection.setConnectTimeout(10000);
+        connection.setReadTimeout(180000);
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
+        connection.setRequestProperty("Accept", "text/event-stream");
+        if (apiKey.length() > 0) connection.setRequestProperty("Authorization", "Bearer " + apiKey);
+        List<Map<String, String>> messages = new ArrayList<Map<String, String>>();
+        Map<String, String> systemMessage = new LinkedHashMap<String, String>();
+        systemMessage.put("role", "system"); systemMessage.put("content", system);
+        messages.add(systemMessage);
+        Map<String, String> userMessage = new LinkedHashMap<String, String>();
+        userMessage.put("role", "user"); userMessage.put("content", user);
+        messages.add(userMessage);
+        Map<String, Object> body = new LinkedHashMap<String, Object>();
+        body.put("model", modelName);
+        body.put("messages", messages);
+        body.put("temperature", 0.3);
+        body.put("max_tokens", 1200);
+        body.put("stream", true);
+        Map<String, Object> thinking = new LinkedHashMap<String, Object>();
+        thinking.put("enable_thinking", false);
+        body.put("chat_template_kwargs", thinking);
+        Map<String, String> responseFormat = new LinkedHashMap<String, String>();
+        responseFormat.put("type", "json_object");
+        body.put("response_format", responseFormat);
+        byte[] bytes = objectMapper.writeValueAsBytes(body);
+        connection.setRequestProperty("Content-Length", String.valueOf(bytes.length));
+        OutputStream output = connection.getOutputStream();
+        try { output.write(bytes); } finally { output.close(); }
+        int status = connection.getResponseCode();
+        if (status >= 400) {
+            try { throw new IOException("Gemma HTTP " + status + ": " + readError(connection)); }
+            finally { connection.disconnect(); }
+        }
+        final StringBuilder result = new StringBuilder();
+        InputStream input = connection.getInputStream();
+        try {
+            readServerSentEvents(input, new ChunkConsumer() {
+                @Override public void onChunk(String chunk) { result.append(chunk); }
+            });
+        } finally { input.close(); connection.disconnect(); }
+        String text = result.toString().trim();
+        if (text.startsWith("```")) {
+            int firstBreak = text.indexOf('\n');
+            int lastFence = text.lastIndexOf("```");
+            if (firstBreak >= 0 && lastFence > firstBreak) text = text.substring(firstBreak + 1, lastFence).trim();
+        }
+        if (text.length() == 0) throw new IOException("Gemma 응답이 비어 있습니다.");
+        return text;
+    }
     private Map<String, Object> createRequestBody(String prompt) {
         Map<String, Object> userMessage = new LinkedHashMap<String, Object>();
         userMessage.put("role", "user");
